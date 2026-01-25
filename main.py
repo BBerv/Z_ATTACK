@@ -32,14 +32,6 @@ DEFAULT_STYLE = {
         "bg": arcade.color.WHITE,
         "border": arcade.color.WHITE,
         "border_width": 2,
-    },
-    "disabled": {
-        "font_name": ("Kenney Future", "Arial"),
-        "font_size": 20,
-        "font_color": arcade.color.GRAY,
-        "bg": (10, 10, 10),
-        "border": None,
-        "border_width": 0,
     }
 }
 
@@ -53,7 +45,6 @@ class MenuView(arcade.View):
         try:
             self.background = arcade.load_texture(BACKGROUND_PATH)
         except FileNotFoundError:
-            print(f"Файл фона не найден: {BACKGROUND_PATH}")
             self.background = None
 
         try:
@@ -79,13 +70,11 @@ class MenuView(arcade.View):
     def _start_game_directly(self, event):
         try:
             from game import GameView
-            game = GameView(mode="base_defense", map_type="forest")
+            game = GameView()
             game.setup()
             self.window.show_view(game)
         except ImportError:
-            print("Файл game.py не найден, запускаем тестовую заглушку.")
-            game = DummyGameView("base_defense", "forest")
-            self.window.show_view(game)
+            print("Файл game.py не найден.")
         except Exception as e:
             print(f"Ошибка при запуске игры: {e}")
 
@@ -95,46 +84,24 @@ class MenuView(arcade.View):
 
     def on_draw(self):
         self.clear()
+        w = self.window.width
+        h = self.window.height
 
         if self.background:
             arcade.draw_texture_rect(self.background, self.window.rect)
         else:
             arcade.set_background_color(arcade.color.DARK_SLATE_GRAY)
 
-        arcade.draw_text("Z ATTACK", SCREEN_WIDTH / 2 + 4, SCREEN_HEIGHT - 154,
+        arcade.draw_text("Z ATTACK", w / 2 + 4, h - 154,
                          arcade.color.BLACK, 80, anchor_x="center", font_name=self.title_font)
-        arcade.draw_text("Z ATTACK", SCREEN_WIDTH / 2, SCREEN_HEIGHT - 150,
+        arcade.draw_text("Z ATTACK", w / 2, h - 150,
                          arcade.color.RED_DEVIL, 80, anchor_x="center", font_name=self.title_font)
 
         self.manager.draw()
 
 
-class DummyGameView(arcade.View):
-    def __init__(self, mode, map_type):
-        super().__init__()
-        self.mode = mode
-        self.map_type = map_type
-
-    def on_show_view(self):
-        arcade.set_background_color(arcade.color.BLACK)
-
-    def on_draw(self):
-        self.clear()
-        arcade.draw_text(f"ИГРА НАЧАЛАСЬ\nРежим: {self.mode}\nКарта: {self.map_type}",
-                         SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2,
-                         arcade.color.WHITE, 24, anchor_x="center", anchor_y="center")
-        arcade.draw_text("Нажми ESC для выхода в меню",
-                         SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 - 80,
-                         arcade.color.GRAY, 16, anchor_x="center")
-
-    def on_key_press(self, symbol, modifiers):
-        if symbol == arcade.key.ESCAPE:
-            self.window.show_view(MenuView())
-
-
 def main():
-    window = arcade.Window(SCREEN_WIDTH, SCREEN_HEIGHT, SCREEN_TITLE, fullscreen=False, resizable=True)
-    window.center_window()
+    window = arcade.Window(SCREEN_WIDTH, SCREEN_HEIGHT, SCREEN_TITLE, fullscreen=True)
     menu = MenuView()
     window.show_view(menu)
     arcade.run()
