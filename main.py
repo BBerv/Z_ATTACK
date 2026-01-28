@@ -1,14 +1,32 @@
 import arcade
 import arcade.gui
-import os
 
+# --- Константы окна ---
 SCREEN_WIDTH = 1280
 SCREEN_HEIGHT = 720
 SCREEN_TITLE = "Z ATTACK"
+FULLSCREEN = True
 
+# --- Пути к ресурсам ---
 BACKGROUND_PATH = "assets/menu_background.jpg"
+FONT_RESOURCE = ":resources:fonts/kenney_blocks.ttf"
 
-DEFAULT_STYLE = {
+# --- Настройки UI ---
+BUTTON_WIDTH = 350
+BUTTON_HEIGHT = 50
+BUTTON_SPACING = 20
+MENU_OFFSET_Y = -80
+
+# --- Настройки текста заголовка ---
+TITLE_TEXT = "Z ATTACK"
+TITLE_FONT_SIZE = 80
+TITLE_MAIN_COLOR = arcade.color.RED_DEVIL
+TITLE_SHADOW_COLOR = arcade.color.BLACK
+TITLE_OFFSET_Y = 150
+TITLE_SHADOW_OFFSET = 4
+
+# --- Стилизация кнопок ---
+BUTTON_STYLE = {
     "normal": {
         "font_name": ("Kenney Future", "Arial"),
         "font_size": 20,
@@ -37,73 +55,152 @@ DEFAULT_STYLE = {
 
 
 class MenuView(arcade.View):
+    """
+    Класс главного меню. Отвечает за отображение интерфейса,
+    фон и обработку нажатий кнопок.
+    """
+
     def __init__(self):
         super().__init__()
-        self.manager = arcade.gui.UIManager()
-        self.manager.enable()
+        self.ui_manager = arcade.gui.UIManager()
+        self.background_texture = None
+        self.title_font_name = "Arial"
 
+        self._load_assets()
+        self._setup_ui()
+
+    def _load_assets(self):
+        """Загрузка изображений и шрифтов с безопасной обработкой ошибок."""
         try:
-            self.background = arcade.load_texture(BACKGROUND_PATH)
+            self.background_texture = arcade.load_texture(BACKGROUND_PATH)
         except FileNotFoundError:
-            self.background = None
+            print(f"Предупреждение: Фон меню не найден по пути {BACKGROUND_PATH}")
+            self.background_texture = None
 
         try:
-            arcade.load_font(":resources:fonts/kenney_blocks.ttf")
-            self.title_font = "Kenney Blocks"
-        except:
-            self.title_font = "Arial"
+            arcade.load_font(FONT_RESOURCE)
+            self.title_font_name = "Kenney Blocks"
+        except Exception as e:
+            print(f"Предупреждение: Не удалось загрузить шрифт. Используется стандартный. {e}")
 
-        anchor = arcade.gui.UIAnchorLayout()
-        v_box = arcade.gui.UIBoxLayout(space_between=20)
+    def _setup_ui(self):
+        """Создание кнопок и размещение их на экране."""
+        anchor_layout = arcade.gui.UIAnchorLayout()
+        buttons_layout = arcade.gui.UIBoxLayout(space_between=BUTTON_SPACING)
 
-        play_btn = arcade.gui.UIFlatButton(text="ИГРАТЬ", width=350, height=50, style=DEFAULT_STYLE)
-        play_btn.on_click = self._start_game_directly
-        v_box.add(play_btn)
+        # Кнопка начала игры
+        play_button = arcade.gui.UIFlatButton(
+            text="ИГРАТЬ",
+            width=BUTTON_WIDTH,
+            height=BUTTON_HEIGHT,
+            style=BUTTON_STYLE
+        )
+        play_button.on_click = self._start_game_handler
+        buttons_layout.add(play_button)
 
-        quit_btn = arcade.gui.UIFlatButton(text="ВЫХОД", width=350, height=50, style=DEFAULT_STYLE)
-        quit_btn.on_click = self._quit
-        v_box.add(quit_btn)
+        # Кнопка выхода
+        quit_button = arcade.gui.UIFlatButton(
+            text="ВЫХОД",
+            width=BUTTON_WIDTH,
+            height=BUTTON_HEIGHT,
+            style=BUTTON_STYLE
+        )
+        quit_button.on_click = self._quit_handler
+        buttons_layout.add(quit_button)
 
-        anchor.add(v_box, anchor_x="center_x", anchor_y="center_y", align_y=-80)
-        self.manager.add(anchor)
+        # Добавляем вертикальный блок кнопок в центр с учетом смещения
+        anchor_layout.add(
+            buttons_layout,
+            anchor_x="center_x",
+            anchor_y="center_y",
+            align_y=MENU_OFFSET_Y
+        )
+        self.ui_manager.add(anchor_layout)
 
-    def _start_game_directly(self, event):
+    def on_show_view(self):
+        """Активирует менеджер UI при переходе на этот экран."""
+        self.ui_manager.enable()
+
+    def on_hide_view(self):
+        """Деактивирует менеджер UI при уходе с этого экрана."""
+        self.ui_manager.disable()
+
+    def _start_game_handler(self, event):
+        """
+        Обработчик кнопки 'Играть'.
+        Пытается импортировать и запустить игровой вид.
+        """
         try:
             from game import GameView
-            game = GameView()
-            game.setup()
-            self.window.show_view(game)
+            game_view = GameView()
+            game_view.setup()
+            self.window.show_view(game_view)
         except ImportError:
-            print("Файл game.py не найден.")
+            print("Ошибка: Файл game.py не найден. Убедитесь, что модуль игры существует.")
         except Exception as e:
-            print(f"Ошибка при запуске игры: {e}")
+            print(f"Критическая ошибка при запуске игры: {e}")
 
-    def _quit(self, event):
+    def _quit_handler(self, event):
+        """Обработчик кнопки 'Выход'. Завершает приложение."""
         self.window.close()
         arcade.exit()
 
     def on_draw(self):
+        """Отрисовка фона, заголовка и интерфейса."""
         self.clear()
-        w = self.window.width
-        h = self.window.height
+        screen_width = self.window.width
+        screen_height = self.window.height
 
-        if self.background:
-            arcade.draw_texture_rect(self.background, self.window.rect)
+        # Отрисовка фона
+        if self.background_texture:
+            arcade.draw_texture_rect(self.background_texture, self.window.rect)
         else:
             arcade.set_background_color(arcade.color.DARK_SLATE_GRAY)
 
-        arcade.draw_text("Z ATTACK", w / 2 + 4, h - 154,
-                         arcade.color.BLACK, 80, anchor_x="center", font_name=self.title_font)
-        arcade.draw_text("Z ATTACK", w / 2, h - 150,
-                         arcade.color.RED_DEVIL, 80, anchor_x="center", font_name=self.title_font)
+        # Координаты заголовка
+        title_x = screen_width / 2
+        title_y = screen_height - TITLE_OFFSET_Y
 
-        self.manager.draw()
+        # Отрисовка тени заголовка
+        arcade.draw_text(
+            TITLE_TEXT,
+            title_x + TITLE_SHADOW_OFFSET,
+            title_y - TITLE_SHADOW_OFFSET,
+            TITLE_SHADOW_COLOR,
+            TITLE_FONT_SIZE,
+            anchor_x="center",
+            font_name=self.title_font_name
+        )
+
+        # Отрисовка основного текста заголовка
+        arcade.draw_text(
+            TITLE_TEXT,
+            title_x,
+            title_y,
+            TITLE_MAIN_COLOR,
+            TITLE_FONT_SIZE,
+            anchor_x="center",
+            font_name=self.title_font_name
+        )
+
+        self.ui_manager.draw()
 
 
 def main():
-    window = arcade.Window(SCREEN_WIDTH, SCREEN_HEIGHT, SCREEN_TITLE, fullscreen=True)
-    menu = MenuView()
-    window.show_view(menu)
+    """Точка входа в приложение. Настройка окна и запуск меню."""
+    window = arcade.Window(
+        SCREEN_WIDTH,
+        SCREEN_HEIGHT,
+        SCREEN_TITLE,
+        fullscreen=FULLSCREEN,
+        antialiasing=False
+    )
+
+    # Настройка фильтрации для пиксель-арта (четкие грани)
+    window.ctx.default_atlas.texture_filter = window.ctx.NEAREST
+
+    menu_view = MenuView()
+    window.show_view(menu_view)
     arcade.run()
 
 
